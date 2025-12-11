@@ -5,17 +5,15 @@
     --text-color: #e94560;
     --settings-bg: #4834d4;
 }
-
 body {
     margin: 0;
     background-color: var(--bg-color);
     color: white;
     font-family: 'Segoe UI', Tahoma, sans-serif;
-    touch-action: none;
+    touch-action: none; /* Chặn cuộn trang trên mobile */
     overflow: hidden;
     user-select: none;
 }
-
 .app {
     display: flex;
     flex-direction: column;
@@ -23,8 +21,6 @@ body {
     height: 100vh;
     padding-top: 10px;
 }
-
-/* --- HEADER --- */
 .header {
     width: 95%;
     max-width: 500px;
@@ -34,7 +30,6 @@ body {
     margin-bottom: 5px;
     padding: 5px 0;
 }
-
 .best-score-box {
     display: flex;
     align-items: center;
@@ -48,7 +43,6 @@ body {
 .score-text { display: flex; flex-direction: column; }
 .label-tiny { font-size: 0.65rem; color: #bbb; text-transform: uppercase; }
 #best-score { font-weight: bold; color: #f1c40f; font-size: 1rem; }
-
 .header-buttons { display: flex; gap: 8px; }
 .btn-icon {
     background: rgba(255,255,255,0.1);
@@ -70,8 +64,6 @@ body {
     box-shadow: 0 3px 0 #d35400;
 }
 .btn-rank:active { transform: translateY(2px); box-shadow: 0 1px 0 #d35400; }
-
-/* --- SCORE DISPLAY --- */
 .current-score-display { text-align: center; margin-bottom: 10px; }
 #score {
     font-size: 3.5rem;
@@ -80,8 +72,6 @@ body {
     text-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
     line-height: 1;
 }
-
-/* --- BOARD 9x9 --- */
 .game-area {
     background: var(--board-bg);
     padding: 5px;
@@ -90,23 +80,14 @@ body {
 }
 .board {
     display: grid;
-    grid-template-columns: repeat(9, 9.5vw); /* Mobile */
+    grid-template-columns: repeat(9, 9.5vw);
     grid-template-rows: repeat(9, 9.5vw);
     gap: 2px;
-}
-@media (min-width: 450px) {
-    .board {
-        grid-template-columns: repeat(9, 40px);
-        grid-template-rows: repeat(9, 40px);
-        gap: 3px;
-    }
 }
 .cell {
     background-color: var(--cell-bg);
     border-radius: 4px;
 }
-
-/* --- 4 BLOCKS AREA --- */
 .shapes-area {
     margin-top: 20px;
     display: flex;
@@ -119,28 +100,45 @@ body {
 .shape-preview {
     display: grid;
     gap: 1px;
-    transform: scale(0.6); /* Thu nhỏ để vừa 4 khối */
+    transform: scale(0.6); 
     align-self: center;
     justify-self: center;
     touch-action: none;
 }
 .block {
-    width: 20px;
+    width: 20px; 
     height: 20px;
     border-radius: 2px;
     box-shadow: inset 0 0 2px rgba(0,0,0,0.2);
 }
-
-/* --- DRAGGING --- */
 .dragging {
     position: fixed;
     z-index: 1000;
     pointer-events: none;
     opacity: 0.9;
-    transform: scale(1.5) !important; /* Phóng to khi kéo */
+    display: grid;
+    gap: 2px; 
+    transform: none !important; 
 }
-
-/* --- MODALS & SETTINGS --- */
+.dragging .block {
+    width: 9.5vw; 
+    height: 9.5vw;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5); 
+}
+@media (min-width: 450px) {
+    .board {
+        grid-template-columns: repeat(9, 40px);
+        grid-template-rows: repeat(9, 40px);
+        gap: 3px;
+    }
+    .dragging {
+        gap: 3px;
+    }
+    .dragging .block {
+        width: 40px;
+        height: 40px;
+    }
+}
 .modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.85);
@@ -148,8 +146,6 @@ body {
     z-index: 2000;
 }
 .hidden { display: none !important; }
-
-/* Settings Panel Style */
 .settings-panel {
     background: var(--settings-bg) !important;
     width: 85%; max-width: 350px;
@@ -166,14 +162,12 @@ body {
 }
 .settings-header h3 { margin: 0; }
 .close-btn { cursor: pointer; font-size: 1.5rem; }
-
 .setting-row {
     display: flex; justify-content: space-between; align-items: center;
     padding: 15px 20px;
     border-bottom: 1px solid rgba(255,255,255,0.1);
     font-weight: bold;
 }
-
 .setting-actions { padding: 20px; display: flex; flex-direction: column; gap: 10px; }
 .btn-setting {
     padding: 12px; border: none; border-radius: 10px;
@@ -183,8 +177,6 @@ body {
 .btn-setting:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
 .btn-green { background-color: #6ab04c; }
 .btn-blue { background-color: #22a6b3; }
-
-/* Modal Content General */
 .modal-content {
     background: #222; padding: 20px; border-radius: 15px;
     text-align: center; width: 80%; max-width: 300px;
@@ -196,8 +188,6 @@ body {
 .btn-save { width: 100%; padding: 10px; margin: 5px 0; border: none; border-radius: 5px; background: #27ae60; color: white; font-weight: bold; cursor: pointer; }
 .btn-replay { width: 100%; padding: 10px; margin: 5px 0; border: none; border-radius: 5px; background: #e67e22; color: white; font-weight: bold; cursor: pointer; }
 .btn-close { margin-top: 10px; background: #c0392b; color: white; padding: 5px 15px; border: none; border-radius: 5px; cursor: pointer; }
-
-/* --- TOGGLE SWITCH --- */
 .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; }
