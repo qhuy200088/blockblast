@@ -29,24 +29,27 @@ body {
 .cell { background-color: var(--cell-bg); border-radius: 4px; }
 .ghost { background-color: rgba(255, 255, 255, 0.5) !important; box-shadow: inset 0 0 0 2px #fff !important; z-index: 10; }
 
-/* TRAY (KHAY ĐỰNG) - MỚI: Thêm viền */
+/* TRAY (KHAY ĐỰNG) - ĐÃ CHỈNH SỬA: Phóng to block */
 .shapes-area {
     margin-top: 15px; display: flex; justify-content: space-between;
-    width: 95%; max-width: 450px; min-height: 100px; padding: 10px;
-    background: rgba(0, 0, 0, 0.2); /* Nền tối nhẹ */
-    border: 2px solid rgba(255, 255, 255, 0.1); /* Viền mờ */
+    width: 95%; max-width: 450px;
+    min-height: 130px; /* Tăng chiều cao khay để chứa block lớn hơn */
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.1);
     border-radius: 15px;
     box-sizing: border-box;
+    align-items: center; /* Căn giữa các block theo chiều dọc */
 }
 .shape-preview {
-    display: grid; gap: 1px; transform: scale(0.6); 
+    display: grid; gap: 1px;
+    transform: scale(0.9); /* Tăng tỉ lệ phóng to từ 0.6 lên 0.9 cho dễ nhấn */
     align-self: center; justify-self: center; touch-action: none;
-    /* Giữ chỗ khi ẩn đi */
     visibility: visible;
 }
 .block { width: 20px; height: 20px; border-radius: 2px; box-shadow: inset 0 0 2px rgba(0,0,0,0.2); }
 
-/* DONATE FOOTER - MỚI */
+/* DONATE FOOTER */
 .donate-info {
     margin-top: auto; margin-bottom: 15px;
     font-size: 0.75rem; color: rgba(255, 255, 255, 0.3);
