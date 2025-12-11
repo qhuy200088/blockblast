@@ -1,9 +1,77 @@
-<script type="module">
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Block Blast 9x9 Master</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <div class="header">
+            <div class="best-score-box">
+                <span class="crown-icon">👑</span>
+                <div class="score-text">
+                    <span class="label-tiny">Best</span>
+                    <span id="best-score">0</span>
+                </div>
+            </div>
+            <div class="header-buttons">
+                <button class="btn-icon" onclick="toggleSettings()">⚙️</button>
+                <button class="btn-rank" onclick="toggleLeaderboard()">🏆 TOP</button>
+            </div>
+        </div>
+        <div class="current-score-display">
+            <div id="score">0</div>
+        </div>
+        <div class="game-area">
+            <div id="game-board" class="board"></div>
+        </div>
+        <div id="shapes-container" class="shapes-area"></div>
+        <div id="settings-modal" class="modal hidden">
+            <div class="modal-content settings-panel">
+                <div class="settings-header">
+                    <h3>Cài Đặt</h3>
+                    <span class="close-btn" onclick="toggleSettings()">✖</span>
+                </div>
+                <div class="setting-row">
+                    <span>📳 Rung (Vibration)</span>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-vibration" onchange="updateSetting('vibration')">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="setting-actions">
+                    <button class="btn-setting btn-green" onclick="location.reload()">🔄 Chơi Lại</button>
+                    <button class="btn-setting btn-blue" onclick="toggleSettings()">▶ Tiếp Tục</button>
+                </div>
+            </div>
+        </div>
+        <div id="game-over-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2 id="go-title">GAME OVER!</h2>
+                <p>Điểm của bạn: <span id="final-score" style="color: #e74c3c; font-weight: bold;">0</span></p>
+                <div class="input-group">
+                    <input type="text" id="player-name" placeholder="Nhập tên của bạn..." maxlength="15">
+                </div>
+                <div class="btn-group">
+                    <button class="btn-save" onclick="saveHighScore()">Lưu Điểm & Chơi Lại</button>
+                    <button class="btn-replay" onclick="location.reload()">Thử Lại Ngay</button>
+                </div>
+            </div>
+        </div>
+        <div id="leaderboard-modal" class="modal hidden">
+            <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+                <h3>🏆 Bảng Xếp Hạng</h3>
+                <ul id="leaderboard-list">Đang tải dữ liệu...</ul>
+                <button class="btn-close" onclick="toggleLeaderboard()">Đóng</button>
+            </div>
+        </div>
+    </div>
+    <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        // --- CẤU HÌNH CỦA BẠN (Đã điền sẵn) ---
         const firebaseConfig = {
             apiKey: "AIzaSyDPxX0aiLsZrmQ27ol_tfwMSHthXsXa2w8",
             authDomain: "huy-block.firebaseapp.com",
@@ -13,81 +81,73 @@
             appId: "1:1081224684854:web:8a778b900f47011d6d3f97",
             measurementId: "G-XC40RP34PG"
         };
-
-        // Khởi tạo Firebase
         let db;
         try {
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
-            console.log("Kết nối Firebase thành công!");
+            console.log("Firebase đã kết nối!");
         } catch (e) {
             console.error("Lỗi kết nối Firebase:", e);
-            alert("Lỗi kết nối Server: " + e.message);
         }
-
-        // 1. Hàm lưu điểm
         window.saveHighScore = async () => {
             const name = document.getElementById('player-name').value.trim();
             const score = parseInt(document.getElementById('final-score').innerText);
-            
             if (!name) return alert("Vui lòng nhập tên!");
-            
             if (db) {
                 try {
-                    // Thêm dữ liệu vào collection "leaderboard_9x9"
                     await addDoc(collection(db, "leaderboard_9x9"), {
                         name: name,
                         score: score,
                         createdAt: new Date()
                     });
-                    alert("Đã lưu điểm lên Server thành công!");
+                    alert("Đã lưu điểm thành công!");
                     location.reload();
                 } catch (error) {
                     console.error("Chi tiết lỗi:", error);
-                    alert("Lỗi khi lưu điểm. Hãy kiểm tra lại tab Firestore Database đã chuyển sang 'Test Mode' chưa.");
+                    alert("Lỗi: " + error.message + "\n(Hãy kiểm tra tab Firestore Database đã bật Test Mode chưa)");
                 }
             } else {
-                alert("Chưa kết nối được Database!");
+                alert("Không có kết nối Database! (Chơi Offline)");
+                location.reload();
             }
         };
-
-        // 2. Hàm tải BXH
         window.toggleLeaderboard = () => {
             const modal = document.getElementById('leaderboard-modal');
             modal.classList.toggle('hidden');
-            
             if (!modal.classList.contains('hidden') && db) {
                 const list = document.getElementById('leaderboard-list');
-                list.innerHTML = "<li>Đang tải dữ liệu...</li>";
-
-                // Lấy 20 người điểm cao nhất
-                const q = query(collection(db, "leaderboard_9x9"), orderBy("score", "desc"), limit(20));
-                
-                onSnapshot(q, (snapshot) => {
-                    list.innerHTML = "";
-                    let rank = 1;
-                    if (snapshot.empty) {
-                        list.innerHTML = "<li>Chưa có dữ liệu nào. Hãy là người đầu tiên!</li>";
-                        return;
-                    }
-
-                    snapshot.forEach((doc) => {
-                        const d = doc.data();
-                        let color = rank === 1 ? '#f1c40f' : rank === 2 ? '#bdc3c7' : rank === 3 ? '#cd7f32' : '#fff';
-                        // Icon top 3
-                        let icon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
-                        
-                        list.innerHTML += `
-                            <li style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #444; color: ${color}; align-items: center;">
-                                <span style="font-weight: bold;">${icon} ${d.name}</span>
-                                <span style="font-family: monospace; font-size: 1.1em;">${d.score}</span>
-                            </li>`;
-                        rank++;
+                list.innerHTML = "<li>Đang tải...</li>";
+                try {
+                    const q = query(collection(db, "leaderboard_9x9"), orderBy("score", "desc"), limit(20));
+                    onSnapshot(q, (snapshot) => {
+                        list.innerHTML = "";
+                        let rank = 1;
+                        if(snapshot.empty) {
+                             list.innerHTML = "<li>Chưa có ai đua top. Bạn hãy là người đầu tiên!</li>";
+                             return;
+                        }
+                        snapshot.forEach((doc) => {
+                            const d = doc.data();
+                            let color = rank === 1 ? '#f1c40f' : rank === 2 ? '#bdc3c7' : rank === 3 ? '#cd7f32' : '#fff';
+                            let icon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+                            list.innerHTML += `
+                                <li style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #444; color: ${color}; align-items: center;">
+                                    <span style="font-weight: bold;">${icon} ${d.name}</span>
+                                    <span style="font-family: monospace; font-size: 1.2em;">${d.score}</span>
+                                </li>`;
+                            rank++;
+                        });
+                    }, (error) => {
+                        console.error(error);
+                        list.innerHTML = "<li>Lỗi quyền truy cập (Permission Denied). Hãy bật Test Mode trong Firestore.</li>";
                     });
-                }, (error) => {
-                    console.error("Lỗi tải BXH:", error);
-                    list.innerHTML = "<li>Lỗi tải dữ liệu (Xem Console)</li>";
-                });
+                } catch (err) {
+                    list.innerHTML = "<li>Lỗi kết nối.</li>";
+                }
             }
         };
     </script>
+
+    <script src="game.js"></script>
+</body>
+</html>
