@@ -1,0 +1,93 @@
+<script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // --- CẤU HÌNH CỦA BẠN (Đã điền sẵn) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPxX0aiLsZrmQ27ol_tfwMSHthXsXa2w8",
+            authDomain: "huy-block.firebaseapp.com",
+            projectId: "huy-block",
+            storageBucket: "huy-block.firebasestorage.app",
+            messagingSenderId: "1081224684854",
+            appId: "1:1081224684854:web:8a778b900f47011d6d3f97",
+            measurementId: "G-XC40RP34PG"
+        };
+
+        // Khởi tạo Firebase
+        let db;
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            console.log("Kết nối Firebase thành công!");
+        } catch (e) {
+            console.error("Lỗi kết nối Firebase:", e);
+            alert("Lỗi kết nối Server: " + e.message);
+        }
+
+        // 1. Hàm lưu điểm
+        window.saveHighScore = async () => {
+            const name = document.getElementById('player-name').value.trim();
+            const score = parseInt(document.getElementById('final-score').innerText);
+            
+            if (!name) return alert("Vui lòng nhập tên!");
+            
+            if (db) {
+                try {
+                    // Thêm dữ liệu vào collection "leaderboard_9x9"
+                    await addDoc(collection(db, "leaderboard_9x9"), {
+                        name: name,
+                        score: score,
+                        createdAt: new Date()
+                    });
+                    alert("Đã lưu điểm lên Server thành công!");
+                    location.reload();
+                } catch (error) {
+                    console.error("Chi tiết lỗi:", error);
+                    alert("Lỗi khi lưu điểm. Hãy kiểm tra lại tab Firestore Database đã chuyển sang 'Test Mode' chưa.");
+                }
+            } else {
+                alert("Chưa kết nối được Database!");
+            }
+        };
+
+        // 2. Hàm tải BXH
+        window.toggleLeaderboard = () => {
+            const modal = document.getElementById('leaderboard-modal');
+            modal.classList.toggle('hidden');
+            
+            if (!modal.classList.contains('hidden') && db) {
+                const list = document.getElementById('leaderboard-list');
+                list.innerHTML = "<li>Đang tải dữ liệu...</li>";
+
+                // Lấy 20 người điểm cao nhất
+                const q = query(collection(db, "leaderboard_9x9"), orderBy("score", "desc"), limit(20));
+                
+                onSnapshot(q, (snapshot) => {
+                    list.innerHTML = "";
+                    let rank = 1;
+                    if (snapshot.empty) {
+                        list.innerHTML = "<li>Chưa có dữ liệu nào. Hãy là người đầu tiên!</li>";
+                        return;
+                    }
+
+                    snapshot.forEach((doc) => {
+                        const d = doc.data();
+                        let color = rank === 1 ? '#f1c40f' : rank === 2 ? '#bdc3c7' : rank === 3 ? '#cd7f32' : '#fff';
+                        // Icon top 3
+                        let icon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+                        
+                        list.innerHTML += `
+                            <li style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #444; color: ${color}; align-items: center;">
+                                <span style="font-weight: bold;">${icon} ${d.name}</span>
+                                <span style="font-family: monospace; font-size: 1.1em;">${d.score}</span>
+                            </li>`;
+                        rank++;
+                    });
+                }, (error) => {
+                    console.error("Lỗi tải BXH:", error);
+                    list.innerHTML = "<li>Lỗi tải dữ liệu (Xem Console)</li>";
+                });
+            }
+        };
+    </script>
