@@ -3,28 +3,18 @@ const BOARD_ID = 'game-board';
 let boardState = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
 let score = 0;
 let bestScore = localStorage.getItem('blockBlastBest_9x9') || 0;
-
-// Cài đặt mặc định
 const userSettings = { vibration: true };
 
-// ĐỊNH NGHĨA CÁC KHỐI (SHAPES)
+// CÁC HÌNH DÁNG
 const SHAPES = [
-    { m: [[1]], c: '#3498db' }, 
-    { m: [[1,1]], c: '#e74c3c' }, 
-    { m: [[1],[1]], c: '#e74c3c' },
-    { m: [[1,1,1]], c: '#2ecc71' }, 
-    { m: [[1],[1],[1]], c: '#2ecc71' },
-    { m: [[1,1,1,1]], c: '#f39c12' }, 
-    { m: [[1],[1],[1],[1]], c: '#f39c12' },
-    { m: [[1,1],[1,1]], c: '#f1c40f' }, 
-    { m: [[1,1,1],[1,1,1],[1,1,1]], c: '#9b59b6' }, 
-    { m: [[1,0],[1,0],[1,1]], c: '#e67e22' }, 
-    { m: [[0,1],[0,1],[1,1]], c: '#e67e22' },
-    { m: [[1,1,1],[0,1,0]], c: '#1abc9c' },
-    { m: [[0,1,0],[1,1,1]], c: '#1abc9c' }
+    { m: [[1]], c: '#3498db' }, { m: [[1,1]], c: '#e74c3c' }, { m: [[1],[1]], c: '#e74c3c' },
+    { m: [[1,1,1]], c: '#2ecc71' }, { m: [[1],[1],[1]], c: '#2ecc71' },
+    { m: [[1,1,1,1]], c: '#f39c12' }, { m: [[1],[1],[1],[1]], c: '#f39c12' },
+    { m: [[1,1],[1,1]], c: '#f1c40f' }, { m: [[1,1,1],[1,1,1],[1,1,1]], c: '#9b59b6' }, 
+    { m: [[1,0],[1,0],[1,1]], c: '#e67e22' }, { m: [[0,1],[0,1],[1,1]], c: '#e67e22' },
+    { m: [[1,1,1],[0,1,0]], c: '#1abc9c' }, { m: [[0,1,0],[1,1,1]], c: '#1abc9c' }
 ];
 
-// KHỞI TẠO GAME
 function init() {
     initSettings();
     document.getElementById('best-score').innerText = bestScore;
@@ -32,28 +22,23 @@ function init() {
     spawnShapes();
 }
 
-// --- XỬ LÝ SETTINGS (CÀI ĐẶT) ---
 function initSettings() {
     const saved = localStorage.getItem('blockBlastSettings');
     if (saved) Object.assign(userSettings, JSON.parse(saved));
     const toggle = document.getElementById('toggle-vibration');
     if(toggle) toggle.checked = userSettings.vibration;
 }
-
 window.toggleSettings = () => { document.getElementById('settings-modal').classList.toggle('hidden'); }
-
 window.updateSetting = (key) => {
     const isChecked = document.getElementById(`toggle-${key}`).checked;
     userSettings[key] = isChecked;
     localStorage.setItem('blockBlastSettings', JSON.stringify(userSettings));
     if (key === 'vibration' && isChecked && navigator.vibrate) navigator.vibrate(100);
 }
-
-function triggerVibrate(ms = 50) {
+function triggerVibrate(ms = 40) {
     if (userSettings.vibration && navigator.vibrate) navigator.vibrate(ms);
 }
 
-// --- VẼ BẢNG & TẠO KHỐI ---
 function drawBoard() {
     const boardEl = document.getElementById(BOARD_ID);
     boardEl.innerHTML = '';
@@ -91,32 +76,27 @@ function createDraggable(shapeObj) {
     shapeObj.m.forEach(row => {
         row.forEach(val => {
             const b = document.createElement('div');
-            if(val) {
-                b.classList.add('block');
-                b.style.backgroundColor = shapeObj.c;
-            } else {
-                b.style.width = '20px'; b.style.height = '20px';
-            }
+            if(val) { b.classList.add('block'); b.style.backgroundColor = shapeObj.c; }
+            else { b.style.width = '20px'; b.style.height = '20px'; }
             wrapper.appendChild(b);
         });
     });
-
     document.getElementById('shapes-container').appendChild(wrapper);
     addDragLogic(wrapper);
 }
 
-// --- TÍNH NĂNG BÓNG MỜ (GHOST BLOCK) ---
+// --- GHOST LOGIC ---
 function clearGhost() {
     document.querySelectorAll('.ghost').forEach(el => el.classList.remove('ghost'));
 }
 
 function drawGhost(r, c, matrix) {
-    clearGhost(); // Xóa bóng cũ
+    clearGhost();
     for(let i=0; i<matrix.length; i++) {
         for(let j=0; j<matrix[0].length; j++) {
             if(matrix[i][j] === 1) {
                 const cell = document.getElementById(`c-${r+i}-${c+j}`);
-                // Chỉ hiện bóng nếu ô đó nằm trong bảng và chưa có gạch
+                // Chỉ hiện bóng trên ô trống
                 if(cell && boardState[r+i][c+j] === 0) {
                     cell.classList.add('ghost');
                 }
@@ -125,9 +105,10 @@ function drawGhost(r, c, matrix) {
     }
 }
 
-// --- KÉO THẢ (DRAG & DROP) ---
+// --- DRAG LOGIC (CẢI TIẾN) ---
 let clone = null, original = null;
 let offX = 0, offY = 0;
+const LIFT_HEIGHT = 80; // Độ cao nhấc lên
 
 function addDragLogic(el) {
     const start = (e) => {
@@ -152,43 +133,71 @@ function addDragLogic(el) {
     el.addEventListener('touchstart', start, {passive: false});
 }
 
+// Hàm tìm ô lưới gần nhất tại tọa độ (x, y)
+function getCellAt(x, y) {
+    // Ẩn clone tạm thời để không che mất ô lưới bên dưới
+    if (clone) clone.style.display = 'none';
+    let el = document.elementFromPoint(x, y);
+    if (clone) clone.style.display = 'grid'; // Hiện lại ngay
+    
+    // Nếu trúng ô lưới
+    if (el && el.id && el.id.startsWith('c-')) return el;
+    
+    // Nếu trúng khe hở (gap), thử tìm xung quanh một chút
+    // (Logic này giúp đỡ bị lệch khi ngón tay run)
+    const offsets = [5, -5];
+    for(let ox of offsets) {
+        for(let oy of offsets) {
+             if (clone) clone.style.display = 'none';
+             el = document.elementFromPoint(x + ox, y + oy);
+             if (clone) clone.style.display = 'grid';
+             if (el && el.id && el.id.startsWith('c-')) return el;
+        }
+    }
+    return null;
+}
+
 const move = (e) => {
     if(!clone) return;
     const touch = e.touches ? e.touches[0] : e;
     
-    // 1. Di chuyển khối theo tay
     clone.style.left = (touch.clientX - offX) + 'px';
-    clone.style.top = (touch.clientY - offY - 80) + 'px'; // Nhấc cao 80px để dễ nhìn
+    clone.style.top = (touch.clientY - offY - LIFT_HEIGHT) + 'px';
 
-    // 2. Tính toán vị trí thả để hiện BÓNG MỜ
-    // Lấy phần tử bên dưới ngón tay (trừ đi offset đã nhấc lên)
-    const targetEl = document.elementFromPoint(touch.clientX, touch.clientY - 80);
+    // Lấy tọa độ "trọng tâm" của ô đầu tiên trong khối
+    // Cộng thêm 1 chút vào X, Y để trỏ vào giữa ô thay vì góc
+    const checkX = touch.clientX - offX + 10; 
+    const checkY = touch.clientY - offY - LIFT_HEIGHT + 10;
+
+    const targetEl = getCellAt(checkX, checkY);
     
-    if (targetEl && targetEl.id && targetEl.id.startsWith('c-')) {
+    if (targetEl) {
         const parts = targetEl.id.split('-');
         const r = parseInt(parts[1]);
         const c = parseInt(parts[2]);
         const matrix = JSON.parse(original.dataset.matrix);
 
-        // Nếu vị trí hợp lệ -> Vẽ bóng
         if (canPlace(r, c, matrix)) {
             drawGhost(r, c, matrix);
         } else {
             clearGhost();
         }
     } else {
-        clearGhost(); // Ra ngoài bảng thì xóa bóng
+        clearGhost();
     }
 }
 
 const end = (e) => {
     if(!clone) return;
-    clone.style.display = 'none';
+    clone.style.display = 'none'; // Ẩn clone để check lần cuối
     
-    const touch = e.changedTouches ? e.changedTouches[0] : e;
-    const targetEl = document.elementFromPoint(touch.clientX, touch.clientY - 80);
-
-    // Xóa bóng ngay khi thả tay
+    // Lấy tọa độ thả tay (lấy từ vị trí clone cuối cùng)
+    const rect = clone.getBoundingClientRect();
+    const checkX = rect.left + 10;
+    const checkY = rect.top + 10;
+    
+    const targetEl = document.elementFromPoint(checkX, checkY);
+    
     clearGhost();
 
     if (targetEl && targetEl.id && targetEl.id.startsWith('c-')) {
@@ -202,7 +211,6 @@ const end = (e) => {
             original.remove();
             clone.remove();
             original = null; clone = null;
-            
             if (document.getElementById('shapes-container').children.length === 0) {
                 setTimeout(spawnShapes, 300);
             } else {
@@ -212,7 +220,7 @@ const end = (e) => {
         }
     }
 
-    // Nếu thả sai -> Trả về cũ
+    // Fail
     original.style.opacity = '1';
     clone.remove();
     original = null; clone = null;
@@ -223,7 +231,6 @@ document.addEventListener('touchmove', move, {passive: false});
 document.addEventListener('mouseup', end);
 document.addEventListener('touchend', end);
 
-// --- LOGIC GAMEPLAY ---
 function canPlace(r, c, matrix) {
     for(let i=0; i<matrix.length; i++) {
         for(let j=0; j<matrix[0].length; j++) {
@@ -247,7 +254,7 @@ function place(r, c, matrix, color) {
             }
         }
     }
-    triggerVibrate(40); // Rung nhẹ
+    triggerVibrate(40);
     updateScore(count);
     drawBoard();
     setTimeout(checkLines, 50);
@@ -261,16 +268,12 @@ function checkLines() {
         for(let r=0; r<GRID_SIZE; r++) if(boardState[r][c]===0) { full=false; break; }
         if(full) cols.push(c);
     }
-
-    const total = rows.length + cols.length;
-    if(total > 0) {
+    if(rows.length + cols.length > 0) {
         rows.forEach(r => boardState[r].fill(0));
         cols.forEach(c => { for(let r=0; r<GRID_SIZE; r++) boardState[r][c] = 0; });
-        
-        // Tính điểm Combo
-        const comboPoints = (total * 9) * 10 * total;
-        updateScore(comboPoints);
-        triggerVibrate(150); // Rung mạnh
+        const combo = (rows.length + cols.length);
+        updateScore(combo * 9 * 10 * combo);
+        triggerVibrate(150);
         drawBoard();
     }
 }
@@ -288,7 +291,6 @@ function updateScore(points) {
 function checkGameOver() {
     const shapes = document.querySelectorAll('.shape-preview');
     if(shapes.length === 0) return;
-
     let dead = true;
     shapes.forEach(el => {
         const m = JSON.parse(el.dataset.matrix);
@@ -298,15 +300,11 @@ function checkGameOver() {
             }
         }
     });
-
     if(dead) {
         document.getElementById('final-score').innerText = score;
-        let title = "GAME OVER";
-        if(score >= bestScore && score > 0) title = "KỶ LỤC MỚI! 👑";
-        document.getElementById('go-title').innerText = title;
+        document.getElementById('go-title').innerText = (score >= bestScore && score > 0) ? "KỶ LỤC MỚI! 👑" : "GAME OVER";
         document.getElementById('game-over-modal').classList.remove('hidden');
     }
 }
 
-// Chạy game
 init();
