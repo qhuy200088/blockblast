@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
     <div class="app">
         <div class="header">
             <div class="best-score-box">
@@ -21,13 +22,21 @@
                 <button class="btn-rank" onclick="toggleLeaderboard()">🏆 TOP</button>
             </div>
         </div>
+
         <div class="current-score-display">
             <div id="score">0</div>
         </div>
+
         <div class="game-area">
             <div id="game-board" class="board"></div>
         </div>
+
         <div id="shapes-container" class="shapes-area"></div>
+
+        <div class="donate-info">
+            ☕ Donate: 20088888866666 MBBank (Dang Quang Huy)
+        </div>
+
         <div id="settings-modal" class="modal hidden">
             <div class="modal-content settings-panel">
                 <div class="settings-header">
@@ -47,6 +56,7 @@
                 </div>
             </div>
         </div>
+
         <div id="game-over-modal" class="modal hidden">
             <div class="modal-content">
                 <h2 id="go-title">GAME OVER!</h2>
@@ -57,18 +67,22 @@
                 </div>
             </div>
         </div>
+
         <div id="leaderboard-modal" class="modal hidden">
             <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
                 <h3>🏆 Bảng Xếp Hạng</h3>
-                <ul id="leaderboard-list">Đang tải dữ liệu...</ul>
+                <ul id="leaderboard-list">Đang tải...</ul>
                 <button class="btn-close" onclick="toggleLeaderboard()">Đóng</button>
             </div>
         </div>
     </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, doc, setDoc, getDoc, query, orderBy, limit, onSnapshot } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // CONFIG CỦA BẠN
         const firebaseConfig = {
             apiKey: "AIzaSyDPxX0aiLsZrmQ27ol_tfwMSHthXsXa2w8",
             authDomain: "huy-block.firebaseapp.com",
@@ -78,16 +92,17 @@
             appId: "1:1081224684854:web:8a778b900f47011d6d3f97",
             measurementId: "G-XC40RP34PG"
         };
+
         let db;
         let currentUserId = localStorage.getItem('device_user_id'); 
         let currentUserName = localStorage.getItem('device_user_name');
+
         try {
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
-            checkUserIdentity(); 
-        } catch (e) {
-            console.error("Lỗi kết nối Firebase:", e);
-        }
+            checkUserIdentity();
+        } catch (e) { console.error(e); }
+
         function checkUserIdentity() {
             if (!currentUserId) {
                 currentUserId = 'user_' + Date.now() + '_' + Math.floor(Math.random() * 9999);
@@ -95,46 +110,33 @@
             }
             if (!currentUserName) {
                 setTimeout(() => {
-                    let nameInput = prompt("Chào bạn mới! Hãy đặt tên hiển thị trên Bảng Xếp Hạng:", "GameThu_VN");
+                    let nameInput = prompt("Tên hiển thị của bạn:", "GameThu_VN");
                     if (!nameInput || nameInput.trim() === "") nameInput = "Khach_" + Math.floor(Math.random()*100);
                     currentUserName = nameInput;
                     localStorage.setItem('device_user_name', currentUserName);
-                    alert(`Đã lưu! Tên của bạn là: ${currentUserName}`);
                 }, 800);
             }
         }
+
         window.saveHighScore = async () => {
             const score = parseInt(document.getElementById('final-score').innerText);
-            if (!db) return alert("Mất kết nối Server (Offline)");
+            if (!db) return alert("Offline Mode");
             try {
                 const userRef = doc(db, "leaderboard_9x9", currentUserId);
                 const userSnap = await getDoc(userRef);
                 if (userSnap.exists()) {
-                    const oldData = userSnap.data();
-                    if (score > oldData.score) {
-                        await setDoc(userRef, {
-                            name: currentUserName, 
-                            score: score,
-                            updatedAt: new Date()
-                        });
-                        alert(`Tuyệt vời! Kỷ lục mới: ${score} điểm đã được cập nhật.`);
-                    } else {
-                        alert(`Điểm hiện tại (${score}) thấp hơn kỷ lục cũ (${oldData.score}). Không cập nhật.`);
-                    }
+                    if (score > userSnap.data().score) {
+                        await setDoc(userRef, { name: currentUserName, score: score, updatedAt: new Date() });
+                        alert(`Đã cập nhật kỷ lục mới: ${score}!`);
+                    } else alert("Điểm chưa phá kỷ lục cũ.");
                 } else {
-                    await setDoc(userRef, {
-                        name: currentUserName,
-                        score: score,
-                        createdAt: new Date()
-                    });
-                    alert("Đã ghi danh vào Bảng Xếp Hạng lần đầu!");
+                    await setDoc(userRef, { name: currentUserName, score: score, createdAt: new Date() });
+                    alert("Đã lưu điểm lần đầu!");
                 }
                 location.reload();
-            } catch (error) {
-                console.error("Lỗi:", error);
-                alert("Lỗi khi lưu điểm. (Check Console)");
-            }
+            } catch (error) { alert("Lỗi lưu điểm."); }
         };
+
         window.toggleLeaderboard = () => {
             const modal = document.getElementById('leaderboard-modal');
             modal.classList.toggle('hidden');
@@ -145,25 +147,20 @@
                 onSnapshot(q, (snapshot) => {
                     list.innerHTML = "";
                     let rank = 1;
-                    if(snapshot.empty) { list.innerHTML = "<li>Chưa có dữ liệu</li>"; return; }
+                    if(snapshot.empty) { list.innerHTML = "<li>Trống</li>"; return; }
                     snapshot.forEach((docSnap) => {
                         const d = docSnap.data();
                         const isMe = docSnap.id === currentUserId;
                         let color = rank === 1 ? '#f1c40f' : rank === 2 ? '#bdc3c7' : rank === 3 ? '#cd7f32' : '#fff';
                         let style = isMe ? 'background: rgba(46, 204, 113, 0.2); border: 1px solid #2ecc71;' : '';
                         let icon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
-                        list.innerHTML += `
-                            <li style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #444; color: ${color}; align-items: center; ${style}">
-                                <span style="font-weight: bold;">${icon} ${d.name} ${isMe ? '(Bạn)' : ''}</span>
-                                <span style="font-family: monospace; font-size: 1.2em;">${d.score}</span>
-                            </li>`;
+                        list.innerHTML += `<li style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #444; color: ${color}; align-items: center; ${style}"><span style="font-weight: bold;">${icon} ${d.name} ${isMe ? '(Bạn)' : ''}</span><span style="font-family: monospace; font-size: 1.2em;">${d.score}</span></li>`;
                         rank++;
                     });
                 });
             }
         };
     </script>
-
     <script src="game.js"></script>
 </body>
 </html>
